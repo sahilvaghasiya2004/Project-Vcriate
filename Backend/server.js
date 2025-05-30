@@ -36,7 +36,7 @@ app.post("/api/run", async (req, res) => {
   }
 });
 
-app.get("/hello world", ()=>{
+app.get("/helloworld", ()=>{
   res.send('Hello World')
 })
 
