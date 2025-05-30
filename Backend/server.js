@@ -37,8 +37,8 @@ app.post("/api/run", async (req, res) => {
   }
 });
 
-app.get("/helloworld", (req, res) => {
-  res.send("Hello World");
+app.get("/", (req, res) => {
+  res.json({ message: "API is running!" });
 });
 
 // app.post("/api/verify", async (req, res) => {
@@ -102,8 +102,7 @@ app.get("/helloworld", (req, res) => {
 //   }
 // });
 
-
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
