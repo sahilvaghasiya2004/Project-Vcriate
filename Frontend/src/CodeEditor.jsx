@@ -232,7 +232,6 @@ export default function CodeEditor() {
         default:
           mainFileName = 'Main.py';
       }
-      console.log("Trying to hit", `${import.meta.env.VITE_API_URL}/api/run`);
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

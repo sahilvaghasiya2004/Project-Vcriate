@@ -5,7 +5,8 @@ import env from "dotenv";
 env.config();
 
 const allowedOrigins = [
-    'https://code-editor-validator.vercel.app' 
+    'https://code-editor-validator.vercel.app',
+    // 'http://localhost:5173'
 ];
 
 const app = express();
