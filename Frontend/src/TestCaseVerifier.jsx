@@ -384,7 +384,7 @@ const TestCaseVerifier = () => {
             className="text-gray-400 hover:text-yellow-400 disabled:text-gray-600 p-1 rounded text-xs transition-colors flex items-center gap-1"
             title="Export Results"
           >
-            <Download className="w-4 h-4" />
+            <Upload className="w-4 h-4" />
             <span className="hidden sm:inline">Export</span>
           </button>
           
