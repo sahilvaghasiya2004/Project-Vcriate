@@ -5,20 +5,16 @@ import env from "dotenv";
 env.config();
 
 const allowedOrigins = [
-    'http://localhost:5173', 
+    'https://code-editor-validator.vercel.app' 
 ];
 
 const app = express();
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     if (!origin || allowedOrigins.includes(origin)) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   }
-// }));
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 app.post("/api/run", async (req, res) => {
@@ -40,6 +36,14 @@ app.post("/api/run", async (req, res) => {
 app.get("/", (req, res) => {
   res.json({ message: "API is running!" });
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+});
+
+
 
 // app.post("/api/verify", async (req, res) => {
 //   try {
@@ -101,9 +105,3 @@ app.get("/", (req, res) => {
 //     res.status(500).json({ error: "Failed to verify code", details: err.message });
 //   }
 // });
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-});
