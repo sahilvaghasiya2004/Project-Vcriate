@@ -15,15 +15,21 @@ const languageOptions = {
   javascript: { ext: "js", name: "JavaScript", icon: "📜" },
   typescript: { ext: "ts", name: "TypeScript", icon: "🔷" },
   html: { ext: "html", name: "HTML", icon: "🌐" },
-  css: { ext: "css", name: "CSS", icon: "🎨" }
+  css: { ext: "css", name: "CSS", icon: "🎨" },
+  plaintext: { ext: "txt", name: "Plain Text", icon: "📄" }
 };
 
 const getLanguageFromExtension = (filename) => {
   const ext = filename.split('.').pop().toLowerCase();
-  for (const [lang, config] of Object.entries(languageOptions)) {
-    if (config.ext === ext) return lang;
+  const supportedLanguages = ['py', 'java', 'cpp', 'c', 'js', 'ts', 'html', 'css'];
+  
+  if (supportedLanguages.includes(ext)) {
+    for (const [lang, config] of Object.entries(languageOptions)) {
+      if (config.ext === ext) return lang;
+    }
   }
-  return 'javascript'; // default
+  
+  return 'plaintext'; // default to plaintext for unsupported extensions
 };
 
 const getExecutableLanguages = () => ['python', 'java', 'cpp', 'c'];
@@ -63,7 +69,8 @@ int main() {
     font-family: Arial, sans-serif;
     text-align: center;
     background-color: #f0f0f0;
-}`
+}`,
+  plaintext: ''
 };
 
 export default function CodeEditor() {
@@ -268,20 +275,49 @@ export default function CodeEditor() {
     URL.revokeObjectURL(url);
   };
 
-  const importFiles = (event) => {
+  const importFile = (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
+    const filename = file.name;
+    const language = getLanguageFromExtension(filename);
+    
+    // Check if file already exists
+    if (files[filename]) {
+      if (!confirm(`File "${filename}" already exists. Do you want to replace it?`)) {
+        event.target.value = '';
+        return;
+      }
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedFiles = JSON.parse(e.target.result);
-        setFiles(importedFiles);
-        setActiveFile(Object.keys(importedFiles)[0]);
+        const content = e.target.result;
+        
+        // Create new file with imported content
+        setFiles(prev => ({
+          ...prev,
+          [filename]: {
+            content: content,
+            language: language,
+            saved: true
+          }
+        }));
+        
+        // Switch to the imported file
+        setActiveFile(filename);
+        
+        console.log(`Imported file: ${filename} (${languageOptions[language]?.name || 'Plain Text'})`);
       } catch (error) {
-        alert('Invalid file format!');
+        alert('Error reading file: ' + error.message);
       }
     };
+    
+    reader.onerror = () => {
+      alert('Error reading file');
+    };
+    
     reader.readAsText(file);
     event.target.value = '';
   };
@@ -353,16 +389,21 @@ export default function CodeEditor() {
           <button
             onClick={exportFiles}
             className="text-gray-400 hover:text-yellow-400 p-1 rounded text-xs transition-colors flex items-center gap-1"
-            title="Export Files"
+            title="Export All Files as JSON"
           >
             <Upload className="w-4 h-4" />
             <span className="hidden sm:inline">Export</span>
           </button>
 
-          <label className="text-gray-400 hover:text-yellow-400 p-1 rounded text-xs transition-colors flex items-center gap-1 cursor-pointer" title="Import Files">
+          <label className="text-gray-400 hover:text-yellow-400 p-1 rounded text-xs transition-colors flex items-center gap-1 cursor-pointer" title="Import Single File">
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Import</span>
-            <input type="file" accept=".json" onChange={importFiles} className="hidden" />
+            <input 
+              type="file" 
+              onChange={importFile} 
+              className="hidden"
+              accept="*/*"
+            />
           </label>
           
           <button
@@ -517,14 +558,14 @@ export default function CodeEditor() {
               <div className="flex-1">
                 <Editor
                   height="100%"
-                  language={currentLanguage}
+                  language={currentLanguage === 'plaintext' ? 'plaintext' : currentLanguage}
                   value={currentFile?.content || ''}
                   onChange={(value) => updateFileContent(activeFile, value || "")}
                   theme="vs-dark"
                   options={{
                     automaticLayout: true,
-                    suggestOnTriggerCharacters: true,
-                    quickSuggestions: true,
+                    suggestOnTriggerCharacters: currentLanguage !== 'plaintext',
+                    quickSuggestions: currentLanguage !== 'plaintext',
                     fontSize: 14,
                     fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
                     tabSize: 2,
@@ -532,7 +573,7 @@ export default function CodeEditor() {
                     wordWrap: 'on',
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,
-                    folding: true,
+                    folding: currentLanguage !== 'plaintext',
                     lineNumbers: 'on',
                     renderWhitespace: 'selection',
                   }}
