@@ -11,8 +11,7 @@
 		"enabled": true
 	},
 	"vars": {
-		"LINK": "https://onecompiler.com/api/code/exec",
-		"SECRETKEY": "KRUSHNAMSADASAHAYTE007"
+		
 	}
 	/**
 	 * Smart Placement
