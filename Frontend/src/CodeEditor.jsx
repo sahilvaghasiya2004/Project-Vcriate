@@ -6,6 +6,7 @@ import {
   PanelGroup,
   PanelResizeHandle,
 } from "react-resizable-panels";
+import {sha256} from "./sha256.jsx";
 
 const languageOptions = {
   python: { ext: "py", name: "Python", icon: "🐍" },
@@ -239,9 +240,16 @@ export default function CodeEditor() {
         default:
           mainFileName = 'Main.py';
       }
+      const timestamp = Date.now().toString();
+      const hash = await sha256(timestamp + import.meta.env.VITE_API_SECRETKEY);
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/run`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-Timestamp": timestamp,
+          "X-Auth": hash,
+        },
         body: JSON.stringify({
           properties: {
             language: language,

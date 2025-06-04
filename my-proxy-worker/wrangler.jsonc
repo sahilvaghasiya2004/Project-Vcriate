@@ -11,7 +11,8 @@
 		"enabled": true
 	},
 	"vars": {
-		// Add non-sensitive environment variables here if needed
+		"LINK": "https://onecompiler.com/api/code/exec",
+		"SECRETKEY": "KRUSHNAMSADASAHAYTE007"
 	}
 	/**
 	 * Smart Placement

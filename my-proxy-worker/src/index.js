@@ -1,34 +1,59 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+// Simple SHA-256 hash function
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
-// Cloudflare Worker version of your proxy server
-
-const allowedOrigins = [
-    'https://validcode.vercel.app',
-    // 'http://localhost:5173'
-];
-
-function handleCORS(request, response) {
-    const origin = request.headers.get('Origin');
+// Simple authentication verification
+async function verifyAuth(request, env) {
+    // 1. Get auth headers
+    const timestamp = request.headers.get('X-Timestamp');
+    const hash = request.headers.get('X-Auth');
     
-    if (allowedOrigins.includes(origin)) {
-        response.headers.set('Access-Control-Allow-Origin', origin);
-        response.headers.set('Access-Control-Allow-Credentials', 'true');
+    if (!timestamp || !hash) {
+        return false;
     }
     
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // 2. Check timestamp freshness (15 seconds)
+    const currentTime = Date.now();
+    const requestTime = parseInt(timestamp);
+    const timeDiff = currentTime - requestTime;
     
+    if (timeDiff > 300000 || timeDiff < -300000) {
+        return false;
+    }
+    
+    // 3. Verify hash
+    console.log("here" , env.SECRETKEY, env.LINK);
+    const expectedHash = await sha256(timestamp + env.SECRETKEY);
+    return hash === expectedHash;
+}
+
+// Simple CORS handler
+function handleCORS(response) {
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, X-Timestamp, X-Auth');
     return response;
 }
 
+// Create error response
+function createErrorResponse(message, status = 403) {
+    return new Response(
+        JSON.stringify({ 
+            error: message,
+            timestamp: new Date().toISOString()
+        }), 
+        {
+            status,
+            headers: { 'Content-Type': 'application/json' }
+        }
+    );
+}
+
+// Main worker
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
@@ -36,7 +61,7 @@ export default {
         // Handle preflight requests
         if (request.method === 'OPTIONS') {
             const response = new Response(null, { status: 200 });
-            return handleCORS(request, response);
+            return handleCORS(response);
         }
         
         // Handle root path
@@ -48,11 +73,19 @@ export default {
                     headers: { 'Content-Type': 'application/json' }
                 }
             );
-            return handleCORS(request, response);
+            return handleCORS(response);
         }
         
-        // Handle /api/run endpoint
+        // Handle /api/run endpoint (auth required)
         if (url.pathname === '/api/run' && request.method === 'POST') {
+            
+            // Verify authentication
+            const isValid = await verifyAuth(request, env);
+            if (!isValid) {
+                const response = createErrorResponse('Unauthorized', 403);
+                return handleCORS(response);
+            }
+            
             try {
                 const body = await request.json();
                 
@@ -72,7 +105,7 @@ export default {
                     }
                 );
                 
-                return handleCORS(request, workerResponse);
+                return handleCORS(workerResponse);
                 
             } catch (err) {
                 const workerResponse = new Response(
@@ -86,12 +119,12 @@ export default {
                     }
                 );
                 
-                return handleCORS(request, workerResponse);
+                return handleCORS(workerResponse);
             }
         }
         
         // Handle 404
-        const response = new Response('Not Found', { status: 404 });
-        return handleCORS(request, response);
+        const response = createErrorResponse('Not Found', 404);
+        return handleCORS(response);
     },
 };

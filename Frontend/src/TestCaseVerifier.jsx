@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Plus, X, Upload, Download, Code2, FileText, CheckCircle, XCircle, Clock, AlertCircle, Trash2, ChevronDown, ChevronUp, Hash, Save } from 'lucide-react';
+import {sha256} from "./sha256.jsx";
 
 const TestCaseVerifier = () => {
   const [activeLanguage, setActiveLanguage] = useState('python');
@@ -248,13 +249,20 @@ const TestCaseVerifier = () => {
     setShowResults(true);
     const testResults = [];
 
+    const timestamp = Date.now().toString();
+    const hash = await sha256(timestamp + import.meta.env.VITE_API_SECRETKEY);
+
     for (let i = 0; i < testCases.length; i++) {
       const testCase = testCases[i];
       
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/run`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Timestamp": timestamp,
+            "X-Auth": hash,
+          },
           body: JSON.stringify({
             properties: {
               language: activeLanguage,
